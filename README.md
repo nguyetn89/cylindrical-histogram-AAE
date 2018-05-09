@@ -15,11 +15,11 @@ An implementation of the paper "Applying Adversarial Auto-encoder for Estimating
 ## Usage
 Process default training and test sets with suggested parameters
 ```
-python3 main.py
+$ python3 main.py
 ```
 Specify test subject for leave-one-out cross-validation, store sampled histograms and save AUC results
 ```
-python3 main.py -l 0 -s 1 -f results.csv
+$ python3 main.py -l 0 -s 1 -f results.csv
 ```
 Param | Description
 ---: | :---
@@ -94,3 +94,5 @@ Results combination
 .....
 (1200) AUC = 0.9583 (+0.0112)
 ```
+
+Portions of the work employed codes from [Agustinus Kristiadi](https://github.com/wiseodd) and [kevinroth](https://github.com/rothk).

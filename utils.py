@@ -5,11 +5,13 @@ import tensorflow as tf
 from sklearn.metrics import roc_auc_score
 import matplotlib.pyplot as plt
 
+from ROC import *
+
 def window_separate(values, seg_len):
     assert seg_len <= len(values)
     return np.vstack(values[i:i+seg_len] for i in range(len(values)-seg_len+1))
 
-def assessment(abnormal_values, normal_values, seg_len, calc_mean = True, overlapping = False):
+def assessment_xxx(abnormal_values, normal_values, seg_len, calc_mean = True, overlapping = False):
     if calc_mean:
         if overlapping:
             abnormal_values = np.mean(window_separate(abnormal_values,seg_len), axis = 1)
@@ -28,7 +30,7 @@ def assessment(abnormal_values, normal_values, seg_len, calc_mean = True, overla
     auc = roc_auc_score(labels, np.concatenate((abnormal_values, normal_values), axis=0))
     return auc
 
-def assessment_full(prob_list_abnormal, prob_list_normal, seg_lens, calc_mean = True, overlapping = False, show_result = False):
+def assessment_full_xxx(prob_list_abnormal, prob_list_normal, seg_lens, calc_mean = True, overlapping = False, show_result = False):
     if show_result:
         print('abnormal sample: %d, normal sample: %d' % (prob_list_abnormal.size, prob_list_normal.size))
     if isinstance(seg_lens, int):
@@ -40,6 +42,18 @@ def assessment_full(prob_list_abnormal, prob_list_normal, seg_lens, calc_mean = 
         if show_result:
             print("(length %4d) auc = %.3f" % (seg_lens[i], auc))
     return results
+    
+def assessment_full(prob_list_abnormal, prob_list_normal, seg_len, calc_mean = False, overlapping = False, show_result = False):
+    if isinstance(seg_len, int):
+        seg_len = [seg_len]
+    ret = np.zeros((len(seg_len), 7))
+    for i in range(len(seg_len)):
+        auc, eer, thresh, sen, spe, pre, acc, F1 = assessment(prob_list_abnormal, prob_list_normal, seg_len[i], calc_mean = calc_mean, overlapping = overlapping)
+        ret[i,:] = [auc, eer, sen, spe, pre, acc, F1]
+        if show_result:
+            print('(%4d) AUC = %.3f, EER = %.3f, th = %.3f, sen = %.3f, spe = %.3f, pre = %.3f, acc = %.3f, F1 = %.3f' \
+                    % (seg_len[i], auc, eer, thresh, sen, spe, pre, acc, F1))
+    return ret
 
 def weight_calc3(latent_prob_seq, dist_seq, disc_seq, use_mean = True):
     m_latent = np.mean(latent_prob_seq) if use_mean else np.median(latent_prob_seq)
@@ -67,7 +81,7 @@ def write_results_to_file(filename, caption, data):
 
 def log_likelihood(k, data): # Wikipedia
     mean = np.zeros((1,k))
-    cov = np.identity(k)
+    cov = np.identity(k) * 16
     def calc_loglikelihood(residuals):
         return -0.5 * (np.log(np.linalg.det(cov)) + residuals.T.dot(np.linalg.inv(cov)).dot(residuals) \
                          + k * np.log(2 * np.pi))
@@ -83,7 +97,7 @@ def get_batch(n_length, batch_size):
         idx_list = np.concatenate((idx_list, np.random.randint(0, high = n_length, size = batch_size - r)), axis = 0)
     return idx_list.reshape((-1, batch_size))
 
-def show_results(results, seg_len, str_title = '', return_mean = False):
+def show_results_xxx(results, seg_len, str_title = '', return_mean = False):
     print(str_title)
     if isinstance(seg_len, int):
         seg_len = [seg_len]
@@ -99,6 +113,26 @@ def show_results(results, seg_len, str_title = '', return_mean = False):
         print('(%4d) AUC = %.4f (+%.4f)' % (seg_len[i], tmp_mean, tmp_std))
     if return_mean:
         return ret
+
+#resuts: n_seg_len * 7 quantities * n_considered_epoch        
+def calc_mean_std_along_epoch(results, seg_len, str_title = ''):
+    print(str_title)
+    if isinstance(seg_len, int):
+        seg_len = [seg_len]
+    assert results.shape[0] == len(seg_len)
+
+    ret_mean = np.zeros((len(seg_len), results.shape[1]))
+    ret_std = np.zeros((len(seg_len), results.shape[1]))
+    for i in range(len(seg_len)):
+        tmp = results[i,:,:]
+        tmp_mean = np.mean(tmp, axis = 1)
+        tmp_std = np.std(tmp, axis = 1)
+        ret_mean[i] = tmp_mean
+        ret_std[i] = tmp_std
+        print('(%4d) AUC = %.4f (+%.4f), EER = %.4f (+%.4f), sen = %.3f (+%.3f), spe = %.3f (+%.3f), pre = %.3f (+%.3f), acc = %.3f (+%.3f), F1 = %.3f (+%.3f)' \
+                % (seg_len[i], tmp_mean[0], tmp_std[0], tmp_mean[1], tmp_std[1], tmp_mean[2], tmp_std[2], \
+                    tmp_mean[3], tmp_std[3], tmp_mean[4], tmp_std[4], tmp_mean[5], tmp_std[5], tmp_mean[6], tmp_std[6]))
+    return ret_mean, ret_std
 
 def plot_training_losses(training_losses, epoch_start = 400, epoch_end = 500):
     X = list(range(training_losses.shape[0]))

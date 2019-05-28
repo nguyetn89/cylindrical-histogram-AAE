@@ -1,5 +1,5 @@
 # cylindrical-histogram-AAE
-An implementation of the paper "Applying Adversarial Auto-encoder for Estimating Human Walking Gait Index"
+An implementation of the paper [Applying Adversarial Auto-encoder for Estimating Human Walking Gait Index](https://link.springer.com/article/10.1007/s10044-019-00790-7)
 
 ## Requirements
 * Python
